@@ -54,7 +54,6 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 public class AppTest {
-
 	private RemoteWebDriver driver;
 	private final boolean debug = true;
 	private static final String filePath = "logger.html";
@@ -63,25 +62,98 @@ public class AppTest {
 	private WebDriverWait wait;
 
 	@BeforeSuite(alwaysRun = true)
-	public void setupBeforeSuite(ITestContext context) throws InterruptedException, MalformedURLException {
+	public void setupBeforeSuite(ITestContext context)
+			throws InterruptedException, MalformedURLException {
+		// http://www.programcreek.com/java-api-examples/index.php?api=org.testng.ITestContext
+		String seleniumHost = context.getCurrentXmlTest().getParameter("host");
+		String seleniumPort = context.getCurrentXmlTest().getParameter("port");
+		String seleniumBrowser = context.getCurrentXmlTest()
+				.getParameter("browser");
 		DesiredCapabilities capabilities;
 		LoggingPreferences loggingPreferences = new LoggingPreferences();
 
-		final String chromeDriverPath = context.getCurrentXmlTest().getParameter("webdriver.chrome.driver");
-		String value = resolveEnvVars(chromeDriverPath);
-		System.setProperty("webdriver.chrome.driver", value);
-		System.err.println(String.format("Setting the environment: \"%s\"=\"%s\"", "webdriver.chrome.driver", value));
-		capabilities = DesiredCapabilities.chrome();
-		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
-		capabilities.setCapability(CapabilityType.LOGGING_PREFS, loggingPreferences);
-		driver = new ChromeDriver(capabilities);
-		// driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+		final String chromeDriverPath = context.getCurrentXmlTest()
+				.getParameter("webdriver.chrome.driver");
+		if (chromeDriverPath != null) {
+			String value = resolveEnvVars(chromeDriverPath);
+			System.setProperty("webdriver.chrome.driver", value);
+			System.err.println(String.format("Setting the environment: \"%s\"=\"%s\"",
+					"webdriver.chrome.driver", value));
+			// TODO: cover "webdriver.gecko.driver"
+		}
+		// remote Configuration
+		if (context.getCurrentXmlTest().getParameter("execution")
+				.compareToIgnoreCase("remote") == 0) {
+
+			String hub = "http://" + seleniumHost + ":" + seleniumPort + "/wd/hub";
+			loggingPreferences.enable(LogType.BROWSER, Level.ALL);
+			loggingPreferences.enable(LogType.CLIENT, Level.INFO);
+			loggingPreferences.enable(LogType.SERVER, Level.INFO);
+
+			if (seleniumBrowser.compareToIgnoreCase("chrome") == 0) {
+				capabilities = new DesiredCapabilities("chrome", "", Platform.ANY);
+				capabilities.setBrowserName("chrome");
+				capabilities.setCapability(CapabilityType.LOGGING_PREFS,
+						loggingPreferences);
+
+			} else {
+
+				capabilities = new DesiredCapabilities("firefox", "", Platform.ANY);
+				capabilities.setBrowserName("firefox");
+
+				FirefoxProfile profile = new ProfilesIni().getProfile("default");
+				capabilities.setCapability("firefox_profile", profile);
+				capabilities.setCapability(CapabilityType.LOGGING_PREFS,
+						loggingPreferences);
+			}
+			try {
+				driver = new RemoteWebDriver(
+						new URL("http://" + seleniumHost + ":" + seleniumPort + "/wd/hub"),
+						capabilities);
+			} catch (MalformedURLException ex) {
+			}
+			assertThat(driver, notNullValue());
+		}
+		// standalone
+		else {
+			if (seleniumBrowser.compareToIgnoreCase("chrome") == 0) {
+				capabilities = DesiredCapabilities.chrome();
+				loggingPreferences.enable(LogType.BROWSER, Level.ALL);
+				capabilities.setCapability(CapabilityType.LOGGING_PREFS,
+						loggingPreferences);
+				driver = new ChromeDriver(capabilities);
+				// driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
+			} else {
+				capabilities = DesiredCapabilities.firefox();
+				loggingPreferences.enable(LogType.BROWSER, Level.ALL);
+				capabilities.setCapability(CapabilityType.LOGGING_PREFS,
+						loggingPreferences);
+				/*
+				   prefs.js:user_pref("extensions.logging.enabled", true);
+				   user.js:user_pref("extensions.logging.enabled", true);
+				 */
+				driver = new FirefoxDriver(capabilities);
+			}
+		}
+		wait = new WebDriverWait(driver, 5);
+		actions = new Actions(driver);
+		Set<String> availableLogTypes = driver.manage().logs()
+				.getAvailableLogTypes();
+		System.err.println("Discovered supported log types: " + availableLogTypes);
+		try {
+			driver.manage().window().setSize(new Dimension(600, 800));
+			driver.manage().timeouts().pageLoadTimeout(10, TimeUnit.SECONDS);
+			driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+		} catch (Exception e) {
+			System.err.println("Exceptio (ignored): " + e.toString());
+		}
 	}
 
 	@Test(description = "Opens the local file", enabled = true)
 	public void consoleLogTest() {
 		driver.navigate().to(getPageContent(filePath));
-		WebElement element = driver.findElement(By.cssSelector("input[name=\"clock\"]"));
+		WebElement element = driver
+				.findElement(By.cssSelector("input[name=\"clock\"]"));
 		final String script = "console.log('Test from client: ' + arguments[0].value); return";
 		sleep(10000);
 		executeScript(script, element);
@@ -93,7 +165,8 @@ public class AppTest {
 		driver.get(base_url);
 
 		String className = "cnn-badge-icon";
-		WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.className(className)));
+		WebElement element = wait.until(
+				ExpectedConditions.visibilityOfElementLocated(By.className(className)));
 		assertThat(element, notNullValue());
 	}
 
@@ -120,8 +193,9 @@ public class AppTest {
 		if (debug) {
 			System.err.println(String.format("Analyze log %s:", context));
 			for (LogEntry entry : logEntries) {
-				System.err.println("time stamp: " + new Date(entry.getTimestamp()) + "\t" + "log level: "
-						+ entry.getLevel() + "\t" + "message: " + entry.getMessage());
+				System.err.println("time stamp: " + new Date(entry.getTimestamp())
+						+ "\t" + "log level: " + entry.getLevel() + "\t" + "message: "
+						+ entry.getMessage());
 			}
 
 		}
@@ -129,7 +203,8 @@ public class AppTest {
 	}
 
 	@SuppressWarnings("unused")
-	private static JSONObject extractObject(HttpResponse httpResponse) throws IOException, JSONException {
+	private static JSONObject extractObject(HttpResponse httpResponse)
+			throws IOException, JSONException {
 		InputStream contents = httpResponse.getEntity().getContent();
 		StringWriter writer = new StringWriter();
 		IOUtils.copy(contents, writer, "UTF8");
@@ -146,7 +221,8 @@ public class AppTest {
 		while (m.find()) {
 			String envVarName = null == m.group(1) ? m.group(2) : m.group(1);
 			String envVarValue = System.getenv(envVarName);
-			m.appendReplacement(sb, null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
+			m.appendReplacement(sb,
+					null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
 		}
 		m.appendTail(sb);
 		return sb.toString();
@@ -163,7 +239,8 @@ public class AppTest {
 		} catch (URISyntaxException | NullPointerException e) {
 			if (debug) {
 				// mask the exception when debug
-				return String.format("file:///%s/target/test-classes/%s", System.getProperty("user.dir"), pagename);
+				return String.format("file:///%s/target/test-classes/%s",
+						System.getProperty("user.dir"), pagename);
 			} else {
 				throw new RuntimeException(e);
 			}
@@ -172,7 +249,8 @@ public class AppTest {
 
 	public Object executeScript(String script, Object... arguments) {
 		if (driver instanceof JavascriptExecutor) {
-			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class.cast(driver);
+			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class
+					.cast(driver);
 			return javascriptExecutor.executeScript(script, arguments);
 		} else {
 			throw new RuntimeException("Script execution failed.");
