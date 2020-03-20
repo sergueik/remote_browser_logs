@@ -7,10 +7,16 @@
       return console.log('INFO: ' +message);
     }
   };
-
-debug = function(message) {
+// 
+warn = function(message) {
   if (typeof console !== 'undefined' && console !== null) {
-    return console.log('DEBUG: ' + message);
+    return console.warn('WARN: ' + message);
+  }
+};
+
+error = function(message) {
+  if (typeof console !== 'undefined' && console !== null) {
+    return console.error('ERROR: ' + message);
   }
 };
 
@@ -27,7 +33,8 @@ function gettime() {
   }
   var message = hours + ":" + minutes + ":" + seconds;
   info(message);
-  debug(message);
+  warn(message);
+  error(message);
   document.clockform.clock.value = message;
   setTimeout("gettime()", 2400);
 }
