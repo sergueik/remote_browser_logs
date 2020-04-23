@@ -4,7 +4,7 @@ This project exercises Selenium driver [logging](https://code.google.com/p/selen
 
 ### Usage
 
-The driver is set with a intance of `LoggingPreferences` in `DesiredCapabilities`:
+The driver instance is created with a instance of specific `LoggingPreferences` class in `DesiredCapabilities`:
 
 ```java
 DesiredCapabilities capabilities;

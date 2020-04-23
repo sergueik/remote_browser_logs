@@ -1,4 +1,4 @@
-package com.github.sergueik.selenium;
+package example;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,7 +7,11 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -17,9 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
@@ -29,87 +31,73 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.ITestContext;
-import org.testng.annotations.AfterSuite;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeSuite;
-import org.testng.annotations.Test;
+import org.testng.annotations.BeforeClass;
 
-public class BrowserLogsTest {
+public class BaseTest {
 
-	private static String osName = getOSName();
-	private RemoteWebDriver driver;
-	private final boolean debug = true;
-	private static final String filePath = "logger.html";
-	private WebDriverWait wait;
+	protected static String osName = getOSName();
+	protected final boolean debug = true;
+	public WebDriverWait wait;
+	public RemoteWebDriver driver;
 
-	@BeforeSuite(alwaysRun = true)
-	public void setupBeforeSuite(ITestContext context) throws InterruptedException, MalformedURLException {
-		DesiredCapabilities capabilities;
-		LoggingPreferences loggingPreferences = new LoggingPreferences();
+	@BeforeClass(alwaysRun = true)
+	public void beforeClass() throws InterruptedException, MalformedURLException {
+		final LoggingPreferences loggingPreferences = new LoggingPreferences();
 
-		System.setProperty("webdriver.chrome.driver", Paths.get(System.getProperty("user.home")).resolve("Downloads")
-				.resolve(osName.equals("windows") ? "chromedriver.exe" : "chromedriver").toAbsolutePath().toString());
-		capabilities = DesiredCapabilities.chrome();
+		System
+				.setProperty("webdriver.chrome.driver",
+						Paths.get(System.getProperty("user.home"))
+								.resolve("Downloads").resolve(osName.equals("windows")
+										? "chromedriver.exe" : "chromedriver")
+								.toAbsolutePath().toString());
 		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
-		capabilities.setCapability(CapabilityType.LOGGING_PREFS, loggingPreferences);
-		// driver = new ChromeDriver();
+		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+		capabilities.setCapability(CapabilityType.LOGGING_PREFS,
+				loggingPreferences);
 		driver = new ChromeDriver(capabilities);
-		// driver.manage().timeouts().implicitlyWait(30, TimeUnit.SECONDS);
 		wait = new WebDriverWait(driver, 5);
 		driver.manage().timeouts().pageLoadTimeout(10, TimeUnit.SECONDS);
 		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 	}
 
-	@Test(description = "Opens the local file", enabled = true)
-	public void consoleLogTest() {
-		driver.navigate().to(getPageContent(filePath));
-		WebElement element = driver.findElement(By.cssSelector("input[name=\"clock\"]"));
-		final String script = "console.log('Test from client: ' + arguments[0].value); return";
-		sleep(10000);
-		executeScript(script, element);
-	}
-
 	@AfterTest(alwaysRun = true, enabled = true)
 	public void afterTest() {
-		if (driver != null) {
-			// hanging ?
-			analyzeLog("After Test");
-		}
 	}
 
-	@AfterSuite(alwaysRun = true, enabled = true)
-	public void cleanupSuite() {
+	@AfterClass(alwaysRun = true, enabled = true)
+	public void afterClass() {
 		if (driver != null) {
-			analyzeLog("After Suite");
 			driver.close();
 			driver.quit();
 		}
 	}
 
-	public void analyzeLog(String context) {
-		LogEntries logEntries = driver.manage().logs().get(LogType.BROWSER);
+	protected List<Map<String, Object>> analyzeLog() {
+		final List<Map<String, Object>> logData = new ArrayList<>();
+		final Map<String, Object> dataRow = new HashMap<>();
+		final LogEntries logEntries = driver.manage().logs().get(LogType.BROWSER);
 		// TODO: sqlite ? ELK ?
-		if (debug) {
-			System.err.println(String.format("Analyze log %s:", context));
-			for (LogEntry entry : logEntries) {
-				System.err.println("time stamp: " + new Date(entry.getTimestamp()) + "\t" + "log level: "
-						+ entry.getLevel() + "\t" + "message: " + entry.getMessage());
-			}
-
+		for (LogEntry entry : logEntries) {
+			dataRow.clear();
+			dataRow.put("time_stamp", new Date(entry.getTimestamp()));
+			dataRow.put("log_level", entry.getLevel());
+			dataRow.put("message", entry.getMessage());
+			logData.add(dataRow);
 		}
-
+		return logData;
 	}
 
-	@SuppressWarnings("unused")
-	private static JSONObject extractObject(HttpResponse httpResponse) throws IOException, JSONException {
+	protected static JSONObject extractObject(HttpResponse httpResponse)
+			throws IOException, JSONException {
 		InputStream contents = httpResponse.getEntity().getContent();
 		StringWriter writer = new StringWriter();
 		IOUtils.copy(contents, writer, "UTF8");
 		return new JSONObject(writer.toString());
 	}
 
-	public static String resolveEnvVars(String input) {
+	protected static String resolveEnvVars(String input) {
 		if (null == input) {
 			return null;
 		}
@@ -119,7 +107,8 @@ public class BrowserLogsTest {
 		while (m.find()) {
 			String envVarName = null == m.group(1) ? m.group(2) : m.group(1);
 			String envVarValue = System.getenv(envVarName);
-			m.appendReplacement(sb, null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
+			m.appendReplacement(sb,
+					null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
 		}
 		m.appendTail(sb);
 		return sb.toString();
@@ -136,23 +125,37 @@ public class BrowserLogsTest {
 		} catch (URISyntaxException | NullPointerException e) {
 			if (debug) {
 				// mask the exception when debug
-				return String.format("file:///%s/target/test-classes/%s", System.getProperty("user.dir"), pagename);
+				return String.format("file:///%s/target/test-classes/%s",
+						System.getProperty("user.dir"), pagename);
 			} else {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	public Object executeScript(String script, Object... arguments) {
+	protected Object executeScript(String script, Object... arguments) {
 		if (driver instanceof JavascriptExecutor) {
-			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class.cast(driver);
+			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class
+					.cast(driver);
 			return javascriptExecutor.executeScript(script, arguments);
 		} else {
 			throw new RuntimeException("Script execution failed.");
 		}
 	}
 
-	public void sleep(Integer milliSeconds) {
+	protected static String getScriptContent(String scriptName) {
+		try {
+			final InputStream stream = BaseTest.class.getClassLoader()
+					.getResourceAsStream(scriptName);
+			final byte[] bytes = new byte[stream.available()];
+			stream.read(bytes);
+			return new String(bytes, "UTF-8");
+		} catch (IOException e) {
+			throw new RuntimeException(scriptName);
+		}
+	}
+
+	protected void sleep(Integer milliSeconds) {
 		try {
 			Thread.sleep((long) milliSeconds);
 		} catch (InterruptedException e) {
@@ -161,7 +164,7 @@ public class BrowserLogsTest {
 	}
 
 	// Utilities
-	public static String getOSName() {
+	protected static String getOSName() {
 		if (osName == null) {
 			osName = System.getProperty("os.name").toLowerCase();
 			if (osName.startsWith("windows")) {

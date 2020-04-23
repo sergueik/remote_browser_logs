@@ -1,26 +1,26 @@
-<html>
-<head>
-<!-- based on: http://www.java2s.com/Tutorials/Javascript/Javascript_Data_Type_How_to/Date_Clock/Create_auto_refresh_clock.htm -->
-<script language = "JavaScript" >
-const logger = 'PAGE SCRIPT';
+// based on: https://stackoverflow.com/questions/20907180/getting-console-log-output-from-chrome-with-selenium-python-api-bindings
+
+const logger = 'INJECTED SCRIPT'
 
 info = function(message) {
   if (typeof console !== 'undefined' && console !== null) {
-    return console.log('INFO: ' + message);
+    return console.log('INFO: ' +message);
   }
 };
+
 warn = function(message) {
   if (typeof console !== 'undefined' && console !== null) {
     return console.warn('WARN: ' + message);
   }
 };
+
 error = function(message) {
   if (typeof console !== 'undefined' && console !== null) {
     return console.error('ERROR: ' + message);
   }
 };
 
-function gettime() {
+gettime = function() {
   var date = new Date();
   var hours = date.getHours();
   var minutes = date.getMinutes();
@@ -35,14 +35,23 @@ function gettime() {
   info(message);
   warn(message);
   error(message);
-  document.clockform.clock.value = message;
-  setTimeout('gettime()', 2400);
+  try{
+    setTimeout('gettime()', 2400);
+  } catch (e) {
+  }
 }
-</script>
-</head>
-<body onload="gettime()">
-<form name="clockform">
-<input type="text" name="clock"/>
-</form>
-</body>
-</html>
+
+if (window.attachEvent) {
+  window.attachEvent('onload', gettime());
+} else {
+  if (window.onload) {
+    var currentOnload = window.onload;
+    var newOnload = function(evt) {
+      currentOnload(evt);
+      gettime(evt);
+    };
+    window.onload = newOnload;
+  } else {
+    window.onload = gettime();
+  }
+}
