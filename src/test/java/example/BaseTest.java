@@ -3,13 +3,17 @@ package example;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+
 import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -19,8 +23,10 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.logging.LogEntries;
@@ -32,13 +38,16 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeClass;
 
 public class BaseTest {
 
 	protected static String osName = getOSName();
-	protected final boolean debug = true;
+	protected static final String driverPath = Paths.get(System.getProperty("user.home")).resolve("Downloads")
+			.resolve(osName.equals("windows") ? "chromedriver.exe" : "chromedriver").toAbsolutePath().toString();
+	protected final boolean debug = (System.getenv("DEBUG") != null);
 	public WebDriverWait wait;
 	public RemoteWebDriver driver;
 
@@ -46,23 +55,27 @@ public class BaseTest {
 	public void beforeClass() throws InterruptedException, MalformedURLException {
 		final LoggingPreferences loggingPreferences = new LoggingPreferences();
 
-		System
-				.setProperty("webdriver.chrome.driver",
-						Paths.get(System.getProperty("user.home"))
-								.resolve("Downloads").resolve(osName.equals("windows")
-										? "chromedriver.exe" : "chromedriver")
-								.toAbsolutePath().toString());
+		System.setProperty("webdriver.chrome.driver", driverPath);
 		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
 		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
-		capabilities.setCapability(CapabilityType.LOGGING_PREFS,
-				loggingPreferences);
+		capabilities.setCapability(CapabilityType.LOGGING_PREFS, loggingPreferences);
 		driver = new ChromeDriver(capabilities);
-		wait = new WebDriverWait(driver, 5);
+		wait = new WebDriverWait(driver, 60);
 		driver.manage().timeouts().pageLoadTimeout(10, TimeUnit.SECONDS);
 		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 	}
 
+	@AfterMethod
+	public void afterMethod() {
+		// there is probably no way to detect that
+		if (debug) {
+			sleep(10000);
+		}
+	}
+
 	@AfterTest(alwaysRun = true, enabled = true)
+	// this annotated method scheduled to run after the execution of all the test
+	// methods present in the classes
 	public void afterTest() {
 	}
 
@@ -75,22 +88,36 @@ public class BaseTest {
 	}
 
 	protected List<Map<String, Object>> analyzeLog() {
-		final List<Map<String, Object>> logData = new ArrayList<>();
-		final Map<String, Object> dataRow = new HashMap<>();
+		final List<Map<String, Object>> logs = new ArrayList<>();
+		final Map<String, Object> row = new HashMap<>();
 		final LogEntries logEntries = driver.manage().logs().get(LogType.BROWSER);
 		// TODO: sqlite ? ELK ?
-		for (LogEntry entry : logEntries) {
-			dataRow.clear();
-			dataRow.put("time_stamp", new Date(entry.getTimestamp()));
-			dataRow.put("log_level", entry.getLevel());
-			dataRow.put("message", entry.getMessage());
-			logData.add(dataRow);
+		if (debug) {
+			System.err.println("Collecting " + logEntries.getAll().size() + " entries");
+			System.err.println("Collecting(raw data): " + logEntries.getAll());
+
 		}
-		return logData;
+		Iterator<LogEntry> logEntryIterator = logEntries.iterator();
+
+		while (logEntryIterator.hasNext()) {
+			LogEntry entry = logEntryIterator.next();
+			row.clear();
+			row.put("time_stamp", new Date(entry.getTimestamp()));
+			row.put("log_level", entry.getLevel());
+			row.put("message", entry.getMessage());
+			logs.add(row);
+		}
+		return logs;
 	}
 
-	protected static JSONObject extractObject(HttpResponse httpResponse)
-			throws IOException, JSONException {
+	protected void printLogs(List<Map<String, Object>> logData) {
+		for (Map<String, Object> row : logData) {
+			System.err.println(String.format("%s : %s %s ", row.get("time_stamp").toString(), row.get("log_level"),
+					row.get("message")));
+		}
+	}
+
+	protected static JSONObject extractObject(HttpResponse httpResponse) throws IOException, JSONException {
 		InputStream contents = httpResponse.getEntity().getContent();
 		StringWriter writer = new StringWriter();
 		IOUtils.copy(contents, writer, "UTF8");
@@ -107,8 +134,7 @@ public class BaseTest {
 		while (m.find()) {
 			String envVarName = null == m.group(1) ? m.group(2) : m.group(1);
 			String envVarValue = System.getenv(envVarName);
-			m.appendReplacement(sb,
-					null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
+			m.appendReplacement(sb, null == envVarValue ? "" : envVarValue.replace("\\", "\\\\"));
 		}
 		m.appendTail(sb);
 		return sb.toString();
@@ -125,8 +151,7 @@ public class BaseTest {
 		} catch (URISyntaxException | NullPointerException e) {
 			if (debug) {
 				// mask the exception when debug
-				return String.format("file:///%s/target/test-classes/%s",
-						System.getProperty("user.dir"), pagename);
+				return String.format("file:///%s/target/test-classes/%s", System.getProperty("user.dir"), pagename);
 			} else {
 				throw new RuntimeException(e);
 			}
@@ -135,8 +160,7 @@ public class BaseTest {
 
 	protected Object executeScript(String script, Object... arguments) {
 		if (driver instanceof JavascriptExecutor) {
-			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class
-					.cast(driver);
+			JavascriptExecutor javascriptExecutor = JavascriptExecutor.class.cast(driver);
 			return javascriptExecutor.executeScript(script, arguments);
 		} else {
 			throw new RuntimeException("Script execution failed.");
@@ -145,8 +169,7 @@ public class BaseTest {
 
 	protected static String getScriptContent(String scriptName) {
 		try {
-			final InputStream stream = BaseTest.class.getClassLoader()
-					.getResourceAsStream(scriptName);
+			final InputStream stream = BaseTest.class.getClassLoader().getResourceAsStream(scriptName);
 			final byte[] bytes = new byte[stream.available()];
 			stream.read(bytes);
 			return new String(bytes, "UTF-8");

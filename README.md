@@ -1,8 +1,9 @@
 ### Info
 This project exercises Selenium driver [logging](https://code.google.com/p/selenium/wiki/Logging) functionality.
 
-
 ### Usage
+
+![Ubuntu Example](https://github.com/sergueik/remote_browser_logs/blob/master/screenshots/browser_logs.png)
 
 The driver instance is created with a instance of specific `LoggingPreferences` class in `DesiredCapabilities`:
 
@@ -49,6 +50,7 @@ Technically Chrome and Firefox are supported. Temporarily project was cleaned up
  - interacing with JSErrorCollector.xpi [java](https://github.com/mguillem/JSErrorCollector) client
  - interacing with JSErrorCollector.xpi [.net](https://github.com/protectedtrust/JSErrorCollector.NET) client
  * [intro to Selenium Webdriver logging](https://comaqa.gitbook.io/selenium-webdriver-lectures/selenium-webdriver.-problemnye-momenty/loggirovanie-v-selenium-webdriver)(in Russian)
+ * another blog about [collecting browser console and network logs](https://automated-testing.info/t/logi-brauzera-so-vkladok-network-i-console-i-dobavlenie-ih-v-allure/24130) (in Russian)
 
 ### Author
 [Serguei Kouzmine](kouzmine_serguei@yahoo.com)
