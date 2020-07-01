@@ -26,6 +26,16 @@
   </properties>
   <dependencies>
     <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.12</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.4.6</version>
+    </dependency>
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>${junit.version}</version>
@@ -33,11 +43,6 @@
     <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
-      <version>${selenium.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.seleniumhq.selenium</groupId>
-      <artifactId>selenium-server</artifactId>
       <version>${selenium.version}</version>
     </dependency>
     <dependency>
@@ -171,6 +176,14 @@
       </properties>
     </profile>
     <profile>
+      <id>4.0</id>
+      <!-- error: package org.apache.http does not exist -->
+      <properties>
+        <selenium.version>4.0.0-alpha-6</selenium.version>
+        <selenium-firefox-driver.version>${selenium.version}</selenium-firefox-driver.version>
+      </properties>
+    </profile>
+    <profile>
       <id>2.53.0</id>
       <properties>
         <selenium.version>2.53.0</selenium.version>
@@ -186,4 +199,39 @@
     </profile>
   </profiles>
   <groupId>example</groupId>
+  <repositories>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+    <repository>
+      <id>maven-central</id>
+      <name>maven central repo</name>
+      <url>https://mvnrepository.com/repos/central</url>
+    </repository>
+    <repository>
+      <id>osgeo</id>
+      <name>osgeo repo</name>
+      <url>https://download.osgeo.org/webdav/geotools/</url>
+    </repository>
+    <repository>
+      <id>seasar</id>
+      <name>seasar repo</name>
+      <url>https://www.seasar.org/maven/maven2</url>
+    </repository>
+    <repository>
+      <id>jcenter</id>
+      <url>https://jcenter.bintray.com/</url>
+    </repository>
+    <repository>
+      <id>central</id>
+      <url>https://repo1.maven.org/maven2/</url>
+    </repository>
+    <!-- 'repo' folder is for non-standard jars that are not available on the public maven repositories -->
+    <repository>
+      <id>project.local</id>
+      <name>project</name>
+      <url>file:${project.basedir}/repo</url>
+    </repository>
+  </repositories>
 </project>

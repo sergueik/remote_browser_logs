@@ -37,6 +37,7 @@ import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.WebDriverWait;
+
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.AfterTest;
@@ -60,7 +61,10 @@ public class BaseTest {
 
 		System.setProperty("webdriver.chrome.driver", driverPath);
 		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
+		// DesiredCapabilities.chrome member is no longer available in 4.0.alpha-6
+		// https://www.lambdatest.com/blog/selenium-4-capabilities/
 		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+		// final DesiredCapabilities capabilities = new DesiredCapabilities();
 		capabilities.setCapability(CapabilityType.LOGGING_PREFS,
 				loggingPreferences);
 		driver = new ChromeDriver(capabilities);
@@ -93,13 +97,13 @@ public class BaseTest {
 
 	protected List<Map<String, Object>> analyzeLog() {
 		final List<Map<String, Object>> logs = new ArrayList<>();
-		/* final */ Map<String, Object> row = new HashMap<>();
+		Map<String, Object> row = new HashMap<>();
 		final LogEntries logEntries = driver.manage().logs().get(LogType.BROWSER);
 		// TODO: sqlite ? ELK ?
 		if (debug) {
 			List<LogEntry> listLogEntries = logEntries.getAll();
-			System.err.println("Collecting " + listLogEntries.size() + " entries");
-			// System.err.println("Collecting(raw data): " + logEntries.getAll());
+			System.err.println(
+					"Collecting (raw data) of " + listLogEntries.size() + " entries: ");
 			int cnt = 0;
 			for (LogEntry logEntry : listLogEntries) {
 				System.err
@@ -112,7 +116,6 @@ public class BaseTest {
 		while (logEntryIterator.hasNext()) {
 			LogEntry entry = logEntryIterator.next();
 			row = new HashMap<>();
-			// row.clear();
 			row.put("time_stamp", new Date(entry.getTimestamp()));
 			row.put("log_level", entry.getLevel());
 			row.put("message", entry.getMessage());
@@ -215,4 +218,3 @@ public class BaseTest {
 	}
 
 }
-

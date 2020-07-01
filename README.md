@@ -25,13 +25,21 @@ for (LogEntry entry : logEntries) {
 	}
 ```
 for more details see the source
-* Works with Selenium versions:
+
+* Works with Selenium versions (including legacy releases):
   - __2.53.1__
   - __2.44.0__
-* Does not work with Selenium version:
   - __3.13.0__
+  - __4.0.0.alpha-6__
+
+Note: with __3.13.0__ Selenium only appear to capture the __[SEVERE]__ and __[WARNING]__ level logs,
+the __[INFO]__ ones appear to be ignored
 
 ### Testing
+
+```sh
+mvn clean test
+```
 ```sh
 mvn -P2.53.0 clean test
 ```
