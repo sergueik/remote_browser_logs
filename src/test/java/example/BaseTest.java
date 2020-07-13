@@ -57,20 +57,23 @@ public class BaseTest {
 
 	@BeforeClass(alwaysRun = true)
 	public void beforeClass() throws InterruptedException, MalformedURLException {
-		final LoggingPreferences loggingPreferences = new LoggingPreferences();
 
 		System.setProperty("webdriver.chrome.driver", driverPath);
-		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
 		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
 
 		// DesiredCapabilities.chrome member is no longer available in 4.0.alpha-6
 		// https://www.lambdatest.com/blog/selenium-4-capabilities/
 		// final DesiredCapabilities capabilities = new DesiredCapabilities();
-		// see also:
-		// https://automated-testing.info/t/logi-brauzera-so-vkladok-network-i-console-i-dobavlenie-ih-v-allure/24130/16
-		loggingPreferences.enable(LogType.PERFORMANCE, Level.ALL);
+
+		final LoggingPreferences loggingPreferences = new LoggingPreferences();
+		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
 		capabilities.setCapability(CapabilityType.LOGGING_PREFS,
 				loggingPreferences);
+
+		// see also:
+		// https://automated-testing.info/t/logi-brauzera-so-vkladok-network-i-console-i-dobavlenie-ih-v-allure/24130/16
+		// TODO: make conditional
+		loggingPreferences.enable(LogType.PERFORMANCE, Level.ALL);
 		capabilities.setCapability("goog:loggingPrefs", loggingPreferences);
 		driver = new ChromeDriver(capabilities);
 		wait = new WebDriverWait(driver, 60);

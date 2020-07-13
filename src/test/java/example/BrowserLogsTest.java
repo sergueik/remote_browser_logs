@@ -116,7 +116,9 @@ public class BrowserLogsTest extends BaseTest {
 			logMessages.append(row.get("message").toString());
 			logMessages.append(System.lineSeparator());
 		});
-		assertThat(logMessages.toString(), containsString("Called by client"));
+		// NOTE: failes when "goog:loggingPrefs" is not set
+		assertThat("expected to receive logs, initiated by client",
+				logMessages.toString(), containsString("Called by client"));
 		/*
 		 * if (debug) { printLogs(logData); }
 		 */
