@@ -61,12 +61,17 @@ public class BaseTest {
 
 		System.setProperty("webdriver.chrome.driver", driverPath);
 		loggingPreferences.enable(LogType.BROWSER, Level.ALL);
+		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+
 		// DesiredCapabilities.chrome member is no longer available in 4.0.alpha-6
 		// https://www.lambdatest.com/blog/selenium-4-capabilities/
-		final DesiredCapabilities capabilities = DesiredCapabilities.chrome();
 		// final DesiredCapabilities capabilities = new DesiredCapabilities();
+		// see also:
+		// https://automated-testing.info/t/logi-brauzera-so-vkladok-network-i-console-i-dobavlenie-ih-v-allure/24130/16
+		loggingPreferences.enable(LogType.PERFORMANCE, Level.ALL);
 		capabilities.setCapability(CapabilityType.LOGGING_PREFS,
 				loggingPreferences);
+		capabilities.setCapability("goog:loggingPrefs", loggingPreferences);
 		driver = new ChromeDriver(capabilities);
 		wait = new WebDriverWait(driver, 60);
 		driver.manage().timeouts().pageLoadTimeout(10, TimeUnit.SECONDS);
@@ -130,6 +135,19 @@ public class BaseTest {
 					String.format("%s : %s %s ", row.get("time_stamp").toString(),
 							row.get("log_level"), row.get("message")));
 		}
+	}
+
+	public String browserLogConsole() {
+
+		LogEntries logEntries = driver.manage().logs().get(LogType.BROWSER);
+		StringBuilder sb = new StringBuilder();
+
+		for (Object line : logEntries) {
+			sb.append(line);
+			sb.append("\n");
+		}
+
+		return sb.toString();
 	}
 
 	protected static JSONObject extractObject(HttpResponse httpResponse)
