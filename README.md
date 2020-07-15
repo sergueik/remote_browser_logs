@@ -47,7 +47,7 @@ mvn -P2.53.0 clean test
 mvn -P2.44.0 clean test
 ```
 ### Note
-Technically Chrome and Firefox are supported. Temporarily project was cleaned up to use Chrome.
+Technically Chrome and Firefox are supported. Temporarily project was cleaned up to use Chrome. To access Firefox compatible *legacy* version  switch to `legacy` branch in git and explore the `legacy` directory in the project.
 
 ### See Also
  - [Log entries](https://logentries.com/doc/java/)
