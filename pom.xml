@@ -17,7 +17,7 @@
     <guava.version>23.0</guava.version>
 
     <!--  not working with this version of Selenium; profiles override -->
-    <junit.version>4.13.1</junit.version>
+    <junit.version>4.13.2</junit.version>
     <selenium.version>3.13.0</selenium.version>
     <selenium-firefox-driver.version>${selenium.version}</selenium-firefox-driver.version>
     <testng.version>6.14.3</testng.version>
